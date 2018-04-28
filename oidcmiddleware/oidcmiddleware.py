@@ -1,5 +1,4 @@
 import random
-import time
 
 try:
     from urllib.parse import quote, urlencode, parse_qsl
@@ -74,7 +73,7 @@ class OpenIDConnectMiddleware(object):
         path_info = environ.get('PATH_INFO', '')
         if OIDC_USERNAME_KEY in session:
             # Already authenticated
-            if path_info.startswith(self._login_path):
+            if path_info == self._login_path:
                 # Just redirect to default if they try to hit the login page
                 start_response('302 Moved Temporarily', [
                     ('Location', get_base_url(environ) + self._default_path)
@@ -86,7 +85,7 @@ class OpenIDConnectMiddleware(object):
             return self._application(environ, start_response)
         else:
             # If it's our login path, handle that elsewhere.
-            if path_info.startswith(self._login_path):
+            if path_info == self._login_path:
                 return self._login(environ, start_response)
 
             # Otherwise, redirect to OpenID provider
@@ -114,9 +113,8 @@ class OpenIDConnectMiddleware(object):
                     token_response = self._client.request_token(get_base_url(environ) + self._login_path, params['code'])
                     id_token = self._client.get_id(token_response)
 
-                    if time.time() < id_token['exp']:
-                        session[OIDC_USERNAME_KEY] = str(id_token[self._username_key])
-                        success = True
+                    session[OIDC_USERNAME_KEY] = str(id_token[self._username_key])
+                    success = True
             finally:
                 self._save_session(environ)
 
