@@ -1,4 +1,5 @@
 import random
+import string
 
 try:
     from urllib.parse import quote, urlencode, parse_qsl
@@ -47,11 +48,12 @@ def get_original_url(environ):
     return url
 
 
+NONCE_CHARACTERS = string.ascii_letters + string.digits + '-_'
 nonce_random = random.SystemRandom()
 
 
 def generate_nonce():
-    c = [nonce_random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_') for x in range(11)]
+    c = [nonce_random.choice(NONCE_CHARACTERS) for x in range(11)]
     return ''.join(c)
 
 
