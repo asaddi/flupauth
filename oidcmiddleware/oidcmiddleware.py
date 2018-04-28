@@ -11,7 +11,7 @@ except ImportError:
 from openid_connect import OpenIDClient
 
 
-__all__ = ['OpenIDConnectMiddleware']
+__all__ = ['OpenIDConnectMiddleware', 'OIDC_USERNAME_KEY']
 
 
 # Session keys
