@@ -1,4 +1,5 @@
 import random
+import time
 
 try:
     from urllib.parse import quote, urlencode, parse_qsl
@@ -89,11 +90,11 @@ class OpenIDConnectMiddleware(object):
                 return self._login(environ, start_response)
 
             # Otherwise, redirect to OpenID provider
-            nonce = generate_nonce()
-            session[OIDC_STATE] = (get_original_url(environ), nonce)
+            state = generate_nonce()
+            session[OIDC_STATE] = (get_original_url(environ), state)
             self._save_session(environ)
             url = self._client.authorize(get_base_url(environ) +
-                                         self._login_path, state=nonce)
+                                         self._login_path, state=state)
             start_response('302 Temporarily Moved', [
                 ('Location', url)
             ])
@@ -105,16 +106,17 @@ class OpenIDConnectMiddleware(object):
         if OIDC_STATE in session and 'code' in params and 'state' in params:
             # An expected return from OpenID provider
             success = False
-            nonce = params['state']
-            return_to, expected_nonce = session[OIDC_STATE]
+            state = params['state']
+            return_to, expected_state = session[OIDC_STATE]
             del session[OIDC_STATE]
             try:
-                if nonce == expected_nonce:
+                if state == expected_state:
                     token_response = self._client.request_token(get_base_url(environ) + self._login_path, params['code'])
                     id_token = self._client.get_id(token_response)
 
-                    session[OIDC_USERNAME_KEY] = str(id_token[self._username_key])
-                    success = True
+                    if time.time() < id_token['exp']:
+                        session[OIDC_USERNAME_KEY] = str(id_token[self._username_key])
+                        success = True
             finally:
                 self._save_session(environ)
 
