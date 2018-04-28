@@ -4,7 +4,6 @@ setup(
     version='0.1',
     packages=find_packages(),
     install_requires=[
-        'Beaker>=1.9.1',
         'openid-connect>=0.4.2'
         ],
 
