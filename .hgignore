@@ -1,0 +1,8 @@
+build
+dist
+oidcmiddleware.egg-info
+
+syntax: glob
+*~
+*.pyc
+test.py
