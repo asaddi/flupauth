@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name='oidcmiddleware',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
     install_requires=[
         'openid-connect>=0.4.2'
