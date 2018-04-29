@@ -61,13 +61,9 @@ class AuthInfoService(object):
 
     NONCE_LENGTH = 22
 
-    def __init__(self, app_id=None):
-        if app_id is None:
-            # Just make one up.
-            # This also means any prior auth infos handed out will now be invalid.
-            # Probably not what you want in production.
-            app_id = generate_nonce(12)
+    def __init__(self, app_id, global_ttl=None):
         self._app_id = app_id
+        self._global_ttl = global_ttl
 
     def issue(self, username):
         now = int(time.time())
@@ -76,7 +72,9 @@ class AuthInfoService(object):
         return auth_info
 
     def is_valid(self, auth_info):
-        return auth_info[1] == self._app_id and self._is_allowed(auth_info)
+        return auth_info[1] == self._app_id and \
+            (self._global_ttl is None or auth_info[2] + self._global_ttl >= time.time()) and \
+            self._is_allowed(auth_info)
 
     def _register(self, auth_info):
         # May want to build a whitelist, in which case you'd store it server-side here.
@@ -92,14 +90,20 @@ class OpenIDConnectMiddleware(object):
 
     def __init__(self, application, url, client_id=None, client_secret=None,
                  username_key='sub', login_path='/login', default_path='/',
-                 auth_info_service=None, app_id=None):
+                 app_id=None, global_ttl=None, auth_info_service=None):
         self._application = application
         self._username_key = username_key
         self._login_path = login_path
         self._default_path = default_path
 
+        if app_id is None:
+            # Just make one up.
+            # This also means any prior auth infos handed out will now be invalid.
+            # Probably not what you want in production.
+            app_id = generate_nonce(12)
+
         if auth_info_service is None:
-            self._auth_info_service = AuthInfoService(app_id)
+            self._auth_info_service = AuthInfoService(app_id, global_ttl=global_ttl)
 
         # TODO periodically time out and refresh the client so
         # the configuration doesn't become stale.
