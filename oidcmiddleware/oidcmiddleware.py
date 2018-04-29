@@ -103,7 +103,8 @@ class OpenIDConnectMiddleware(object):
             app_id = generate_nonce(12)
 
         if auth_info_service is None:
-            self._auth_info_service = AuthInfoService(app_id, global_ttl=global_ttl)
+            auth_info_service = AuthInfoService(app_id, global_ttl=global_ttl)
+        self._auth_info_service = auth_info_service
 
         # TODO periodically time out and refresh the client so
         # the configuration doesn't become stale.
