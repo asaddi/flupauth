@@ -133,7 +133,7 @@ class OpenIDConnectMiddleware(object):
         return ['Bad Request\n']
 
     def _get_session(self, environ):
-        return environ['flup.session']
+        return environ['flup.session']()
 
     def _save_session(self, environ):
         pass
