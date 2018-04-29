@@ -1,1 +1,1 @@
-from oidcmiddleware import *
+from .oidcmiddleware import *

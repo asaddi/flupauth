@@ -4,17 +4,14 @@ import time
 
 from base64 import urlsafe_b64encode
 
-try:
-    from urllib.parse import quote, urlencode, parse_qsl
-except ImportError:
-    # Python 2.x
-    from urllib import quote, urlencode
-    from cgi import parse_qsl
+from six.moves.urllib.parse import quote, urlencode, parse_qsl
 
 from openid_connect import OpenIDClient
 
 
-__all__ = ['OpenIDConnectMiddleware', 'OIDC_AUTH_INFO_KEY']
+__all__ = ['OpenIDConnectMiddleware',
+           'OIDC_AUTH_INFO_KEY',
+           'AuthInfoService']
 
 
 # Session keys
@@ -55,11 +52,12 @@ def generate_nonce(byte_length):
     return urlsafe_b64encode(os.urandom(byte_length)).rstrip('=')
 
 
-# Using the JWT as-is is also a possibility. But we'll go with this for now.
-# In essence, aud = app_id, sub = username. Also makes use of iat and jti.
+# Using JWT is also a possibility. But we'll go with this for now.
+# In essence, iss/aud = app_id, sub = username. Also makes use of iat and jti.
+# Note that we don't bother with signing/encryption because we assume
+# any sane client-side session implementation will do that already.
+# So JWT might actually be overkill...
 class AuthInfoService(object):
-
-    NONCE_LENGTH = 22
 
     def __init__(self, app_id, global_ttl=None):
         self._app_id = app_id
@@ -77,11 +75,13 @@ class AuthInfoService(object):
             self._is_allowed(auth_info)
 
     def _register(self, auth_info):
-        # May want to build a whitelist, in which case you'd store it server-side here.
+        # May want to build a whitelist, in which case you'd store it
+        # server-side here.
         pass
 
     def _is_allowed(self, auth_info):
         # Check the whitelist or alternatively, check the blacklist.
+        # Also possible: per-user expiration to check timestamp against.
         # Default implementation does nothing.
         return True
 
@@ -119,7 +119,8 @@ class OpenIDConnectMiddleware(object):
             auth_info = session[OIDC_AUTH_INFO_KEY]
             if self._auth_info_service.is_valid(auth_info):
                 if path_info == self._login_path:
-                    # Just redirect to default if they try to hit the login page
+                    # Just redirect to default if they try to hit the login
+                    # page
                     start_response('302 Moved Temporarily', [
                         ('Location', get_base_url(environ) + self._default_path)
                     ])

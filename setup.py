@@ -4,6 +4,7 @@ setup(
     version='0.2',
     packages=find_packages(),
     install_requires=[
+        'six>=1.11.0',
         'openid-connect>=0.4.2'
         ],
 
