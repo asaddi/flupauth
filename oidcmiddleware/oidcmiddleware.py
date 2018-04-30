@@ -41,9 +41,11 @@ def get_base_url(environ):
 
 
 def get_original_url(environ):
-    """Reconstructs request URL from environ, sans query string."""
+    """Reconstructs request URL from environ."""
     url = get_base_url(environ)
     url += quote(environ.get('PATH_INFO',''))
+    if environ.get('QUERY_STRING'):
+        url += '?' + environ['QUERY_STRING']
 
     return url
 
