@@ -159,7 +159,7 @@ class OpenIDConnectMiddleware(object):
             try:
                 if state == expected_state:
                     token_response = self._client.request_token(get_base_url(environ) + self._login_path, params['code'])
-                    id_token = self._client.get_id(token_response)
+                    id_token = token_response.id
 
                     session[OIDC_AUTH_INFO_KEY] = self._auth_info_service.issue(id_token[self._username_key])
                     success = True
