@@ -4,6 +4,7 @@ import time
 
 from base64 import urlsafe_b64encode
 
+from six import string_types
 from six.moves.urllib.parse import quote, urlencode, parse_qsl
 
 from openid_connect import OpenIDClient
@@ -91,7 +92,7 @@ class AuthInfoService(object):
 class OpenIDConnectMiddleware(object):
 
     def __init__(self, application, url, client_id=None, client_secret=None,
-                 username_key='sub', login_path='/login', default_path='/',
+                 username_key=('sub', 'iss'), login_path='/login', default_path='/',
                  app_id=None, global_ttl=None, auth_info_service=None):
         self._application = application
         self._username_key = username_key
@@ -163,7 +164,8 @@ class OpenIDConnectMiddleware(object):
                     token_response = self._client.request_token(get_base_url(environ) + self._login_path, params['code'])
                     id_token = token_response.id
 
-                    session[OIDC_AUTH_INFO_KEY] = self._auth_info_service.issue(id_token[self._username_key])
+                    username = self._get_username(id_token)
+                    session[OIDC_AUTH_INFO_KEY] = self._auth_info_service.issue(username)
                     success = True
             finally:
                 self._save_session(environ)
@@ -179,6 +181,17 @@ class OpenIDConnectMiddleware(object):
         # Bad request
         start_response('400 Bad Request', [])
         return ['Bad Request\n']
+
+    def _get_username(self, id_token):
+        key = self._username_key
+        if isinstance(key, string_types):
+            # Single key
+            return id_token[key]
+        else:
+            # Assume it's an iterable
+            # Join values together with '@' (most useful for "sub@iss",
+            # which is the only unique identifier from default claims).
+            return '@'.join([id_token[k] for k in key])
 
     def _get_session(self, environ):
         return environ['flup.session']()

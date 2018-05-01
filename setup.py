@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name='oidcmiddleware',
-    version='0.2',
+    version='0.2.1',
     packages=find_packages(),
     install_requires=[
         'six>=1.11.0',
