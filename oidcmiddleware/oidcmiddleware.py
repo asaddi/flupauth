@@ -1,5 +1,6 @@
 import os
 import string
+import random
 import time
 
 from base64 import urlsafe_b64encode
@@ -51,8 +52,11 @@ def get_original_url(environ):
     return url
 
 
-def generate_nonce(byte_length):
-    return urlsafe_b64encode(os.urandom(byte_length)).rstrip('=')
+_noncechars = string.ascii_letters + string.digits + '-_'
+_noncerand = random.SystemRandom()
+
+def generate_nonce(length):
+    return ''.join([_noncerand.choice(_noncechars) for _ in range(length)])
 
 
 # Using JWT is also a possibility. But we'll go with this for now.
@@ -68,7 +72,7 @@ class AuthInfoService(object):
 
     def issue(self, username):
         now = int(time.time())
-        auth_info = (username, self._app_id, now, generate_nonce(16))
+        auth_info = (username, self._app_id, now, generate_nonce(22))
         self._register(auth_info)
         return auth_info
 
@@ -103,7 +107,7 @@ class OpenIDConnectMiddleware(object):
             # Just make one up.
             # This also means any prior auth infos handed out will now be invalid.
             # Probably not what you want in production.
-            app_id = generate_nonce(12)
+            app_id = generate_nonce(16)
 
         if auth_info_service is None:
             auth_info_service = AuthInfoService(app_id, global_ttl=global_ttl)
@@ -140,11 +144,13 @@ class OpenIDConnectMiddleware(object):
             return self._login(environ, start_response)
 
         # Otherwise, redirect to OpenID provider
-        state = generate_nonce(8)
-        session[OIDC_STATE] = (get_original_url(environ), state)
+        state = generate_nonce(11)
+        nonce = generate_nonce(11)
+        session[OIDC_STATE] = (get_original_url(environ), state, nonce)
         self._save_session(environ)
         url = self._client.authorize(get_base_url(environ) +
-                                     self._login_path, state=state)
+                                     self._login_path, state=state,
+                                     nonce=nonce)
         start_response('302 Temporarily Moved', [
             ('Location', url)
         ])
@@ -157,16 +163,17 @@ class OpenIDConnectMiddleware(object):
             # An expected return from OpenID provider
             success = False
             state = params['state']
-            return_to, expected_state = session[OIDC_STATE]
+            return_to, expected_state, expected_nonce = session[OIDC_STATE]
             del session[OIDC_STATE]
             try:
                 if state == expected_state:
                     token_response = self._client.request_token(get_base_url(environ) + self._login_path, params['code'])
                     id_token = token_response.id
 
-                    username = self._get_username(id_token)
-                    session[OIDC_AUTH_INFO_KEY] = self._auth_info_service.issue(username)
-                    success = True
+                    if id_token.get('nonce', '') == expected_nonce:
+                        username = self._get_username(id_token)
+                        session[OIDC_AUTH_INFO_KEY] = self._auth_info_service.issue(username)
+                        success = True
             finally:
                 self._save_session(environ)
 
