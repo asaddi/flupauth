@@ -19,7 +19,7 @@ OID2_AUTH_INFO_KEY = 'oid2.auth_info'
 # already redirected to the provider.
 OID2_RETURN_TO = 'oid2.return_to'
 
-
+# Big thanks to https://gist.github.com/burnsba/91d89befbc2f6d3e2a92
 class SteamOpenIDMiddleware(object):
 
     _openid_provider = 'https://steamcommunity.com/openid/login'
