@@ -5,4 +5,4 @@ flupauth.egg-info
 syntax: glob
 *~
 *.pyc
-test.py
+*test.py

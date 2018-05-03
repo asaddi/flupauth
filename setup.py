@@ -1,3 +1,9 @@
+import sys
+
+# Sigh... better way?
+oid_version = sys.version_info.major == 2 and 'python-openid>=2.2.5' or \
+              'python3-openid>=3.1.0'
+
 from setuptools import setup, find_packages
 setup(
     name='flupauth',
@@ -8,6 +14,7 @@ setup(
     ],
     extras_require={
         'oidc': ['openid-connect>=0.4.3aps'],
+        'steam': [oid_version, 'Jinja2>=2.10'],
     },
 
     author='Allan Saddi',

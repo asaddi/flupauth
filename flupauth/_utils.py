@@ -34,6 +34,14 @@ def get_original_url(environ):
     return url
 
 
+def get_original_url_nq(environ):
+    """Reconstructs request URL from environ, sans query string."""
+    url = get_base_url(environ)
+    url += quote(environ.get('PATH_INFO',''))
+
+    return url
+
+
 _noncechars = string.ascii_letters + string.digits + '-_'
 _noncerand = random.SystemRandom()
 
