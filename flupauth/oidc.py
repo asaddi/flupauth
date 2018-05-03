@@ -3,7 +3,7 @@ from six.moves.urllib.parse import parse_qsl
 
 from openid_connect import OpenIDClient
 
-from ._authinfo import *
+from . import *
 from ._utils import *
 
 

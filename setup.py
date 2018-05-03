@@ -7,7 +7,7 @@ oid_version = sys.version_info.major == 2 and 'python-openid>=2.2.5' or \
 from setuptools import setup, find_packages
 setup(
     name='flupauth',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
     install_requires=[
         'six>=1.11.0',
