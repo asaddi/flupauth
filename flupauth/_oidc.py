@@ -28,8 +28,8 @@ class OpenIDConnectMiddleware(object):
 
         if app_id is None:
             # Just make one up.
-            # This also means any prior auth infos handed out will now be invalid.
-            # Probably not what you want in production.
+            # This also means any prior auth infos handed out will now be
+            # invalid. Probably not what you want in production.
             app_id = generate_nonce(16)
 
         if auth_info_service is None:

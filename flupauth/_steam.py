@@ -10,11 +10,11 @@ from ._utils import *
 
 
 __all__ = ['SteamOpenIDMiddleware',
-           'OID2_USERNAME_KEY']
+           'OID2_AUTH_INFO_KEY']
 
 
 # Session keys
-OID2_USERNAME_KEY = 'oid2.username'
+OID2_AUTH_INFO_KEY = 'oid2.auth_info'
 # Note the presence of the following is used to determine whether we've
 # already redirected to the provider.
 OID2_RETURN_TO = 'oid2.return_to'
@@ -24,10 +24,21 @@ class SteamOpenIDMiddleware(object):
 
     _openid_provider = 'https://steamcommunity.com/openid/login'
 
-    def __init__(self, application, login_path='/login', default_path='/'):
+    def __init__(self, application, login_path='/login', default_path='/',
+                 app_id=None, global_ttl=None, auth_info_service=None):
         self._application = application
         self._login_path = login_path
         self._default_path = default_path
+
+        if app_id is None:
+            # Just make one up.
+            # This also means any prior auth infos handed out will now be
+            # invalid. Probably not what you want in production.
+            app_id = generate_nonce(16)
+
+        if auth_info_service is None:
+            auth_info_service = AuthInfoService(app_id, global_ttl=global_ttl)
+        self._auth_info_service = auth_info_service
 
         self._env = Environment(
             loader=PackageLoader('flupauth', 'templates'),
@@ -38,30 +49,35 @@ class SteamOpenIDMiddleware(object):
     def __call__(self, environ, start_response):
         session = self._get_session(environ)
         path_info = environ.get('PATH_INFO', '')
-        if OID2_USERNAME_KEY in session:
-            # Already authenticated
-            if path_info.startswith(self._login_path):
-                # Just redirect to default if they try to hit the login page
-                start_response('302 Moved Temporarily', [
-                    ('Location', get_base_url(environ) + self._default_path)
-                ])
-                return []
-            # Update environ and pass through to application
-            environ['AUTH_TYPE'] = 'OID2'
-            environ['REMOTE_USER'] = str(session[OID2_USERNAME_KEY])
-            return self._application(environ, start_response)
-        else:
-            # If it's our login path, handle that elsewhere.
-            if path_info.startswith(self._login_path):
-                return self._login(environ, start_response)
+        if OID2_AUTH_INFO_KEY in session:
+            auth_info = session[OID2_AUTH_INFO_KEY]
+            if self._auth_info_service.is_valid(auth_info):
+                # Possibly already authenticated
+                if path_info.startswith(self._login_path):
+                    # Just redirect to default if they try to hit the login
+                    # page
+                    start_response('302 Moved Temporarily', [
+                        ('Location', get_base_url(environ) + self._default_path)
+                    ])
+                    return []
+                # Update environ and pass through to application
+                environ['AUTH_TYPE'] = 'OID2'
+                environ['REMOTE_USER'] = str(auth_info[0])
+                return self._application(environ, start_response)
 
-            # Otherwise, redirect to our login.
-            session[OID2_RETURN_TO] = get_original_url(environ)
-            self._save_session(environ)
-            start_response('302 Moved Temporarily', [
-                ('Location', get_base_url(environ) + self._login_path)
-            ])
-            return []
+        # Not yet authenticated...
+
+        # If it's our login path, handle that elsewhere.
+        if path_info.startswith(self._login_path):
+            return self._login(environ, start_response)
+
+        # Otherwise, redirect to our login.
+        session[OID2_RETURN_TO] = get_original_url(environ)
+        self._save_session(environ)
+        start_response('302 Moved Temporarily', [
+            ('Location', get_base_url(environ) + self._login_path)
+        ])
+        return []
 
     def _login(self, environ, start_response):
         session = self._get_session(environ)
@@ -71,7 +87,7 @@ class SteamOpenIDMiddleware(object):
             openid_consumer = consumer.Consumer({}, memstore.MemoryStore())
             info = openid_consumer.complete(params, get_original_url_nq(environ))
             if info.status == consumer.SUCCESS:
-                session[OID2_USERNAME_KEY] = params['openid.identity']
+                session[OID2_AUTH_INFO_KEY] = self._auth_info_service.issue(params['openid.identity'])
                 # Figure out where to return to
                 if OID2_RETURN_TO in session:
                     return_to = session[OID2_RETURN_TO]
