@@ -1,6 +1,6 @@
 build
 dist
-oidcmiddleware.egg-info
+flupauth.egg-info
 
 syntax: glob
 *~

@@ -1,96 +1,19 @@
-import os
-import string
-import random
-import time
-
-from base64 import urlsafe_b64encode
-
 from six import string_types
-from six.moves.urllib.parse import quote, urlencode, parse_qsl
+from six.moves.urllib.parse import parse_qsl
 
 from openid_connect import OpenIDClient
 
+from ._authinfo import *
+from ._utils import *
+
 
 __all__ = ['OpenIDConnectMiddleware',
-           'OIDC_AUTH_INFO_KEY',
-           'AuthInfoService']
+           'OIDC_AUTH_INFO_KEY']
 
 
 # Session keys
 OIDC_AUTH_INFO_KEY = 'oidc.auth_info'
 OIDC_STATE = 'oidc.state'
-
-
-def get_base_url(environ):
-    """Reconstructs request URL from environ, sans path info/query string."""
-    url = environ['wsgi.url_scheme'] + '://'
-
-    if environ.get('HTTP_HOST'):
-        url += environ['HTTP_HOST']
-    else:
-        url += environ['SERVER_NAME']
-
-        if environ['wsgi.url_scheme'] == 'https':
-            if environ['SERVER_PORT'] != '443':
-                url += ':' + environ['SERVER_PORT']
-        else:
-            if environ['SERVER_PORT'] != '80':
-                url += ':' + environ['SERVER_PORT']
-
-    url += quote(environ.get('SCRIPT_NAME',''))
-
-    return url
-
-
-def get_original_url(environ):
-    """Reconstructs request URL from environ."""
-    url = get_base_url(environ)
-    url += quote(environ.get('PATH_INFO',''))
-    if environ.get('QUERY_STRING'):
-        url += '?' + environ['QUERY_STRING']
-
-    return url
-
-
-_noncechars = string.ascii_letters + string.digits + '-_'
-_noncerand = random.SystemRandom()
-
-def generate_nonce(length):
-    return ''.join([_noncerand.choice(_noncechars) for _ in range(length)])
-
-
-# Using JWT is also a possibility. But we'll go with this for now.
-# In essence, iss/aud = app_id, sub = username. Also makes use of iat and jti.
-# Note that we don't bother with signing/encryption because we assume
-# any sane client-side session implementation will do that already.
-# So JWT might actually be overkill...
-class AuthInfoService(object):
-
-    def __init__(self, app_id, global_ttl=None):
-        self._app_id = app_id
-        self._global_ttl = global_ttl
-
-    def issue(self, username):
-        now = int(time.time())
-        auth_info = (username, self._app_id, now, generate_nonce(22))
-        self._register(auth_info)
-        return auth_info
-
-    def is_valid(self, auth_info):
-        return auth_info[1] == self._app_id and \
-            (self._global_ttl is None or auth_info[2] + self._global_ttl >= time.time()) and \
-            self._is_allowed(auth_info)
-
-    def _register(self, auth_info):
-        # May want to build a whitelist, in which case you'd store it
-        # server-side here.
-        pass
-
-    def _is_allowed(self, auth_info):
-        # Check the whitelist or alternatively, check the blacklist.
-        # Also possible: per-user expiration to check timestamp against.
-        # Default implementation does nothing.
-        return True
 
 
 class OpenIDConnectMiddleware(object):

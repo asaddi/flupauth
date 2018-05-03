@@ -1,14 +1,16 @@
 from setuptools import setup, find_packages
 setup(
-    name='oidcmiddleware',
-    version='0.2.2',
+    name='flupauth',
+    version='0.1',
     packages=find_packages(),
     install_requires=[
         'six>=1.11.0',
-        'openid-connect>=0.4.3aps'
-        ],
+    ],
+    extras_require={
+        'oidc': ['openid-connect>=0.4.3aps'],
+    },
 
     author='Allan Saddi',
     author_email='allan@saddi.com',
-    description='Simple WSGI middleware for authenticating against a single OpenID Connect provider',
+    description='WSGI middleware for a select few SSO-like authentication schemes'
 )
