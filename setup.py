@@ -13,7 +13,7 @@ setup(
         'six>=1.11.0',
     ],
     extras_require={
-        'oidc': ['openid-connect>=0.4.3aps'],
+        'oidc': ['openid-connect>=0.4.2mod'],
         'steam': [oid_version, 'Jinja2>=2.10'],
     },
 
