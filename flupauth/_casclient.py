@@ -1,7 +1,6 @@
 import xml.dom.minidom
 
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.request import urlopen # TODO replace with requests
+import requests
 
 
 __all__ = ['CASClient']
@@ -28,10 +27,12 @@ class CASClient(object):
         Authenticate a ticket. Either returns the authenticated username
         or None.
         """
-        params = urlencode({'service': self.serviceUrl, 'ticket': ticket})
-        f = urlopen('%s?%s' % (self.validateUrl, params))
-        result = f.read()
-        f.close()
+        r = requests.get(self.validateUrl, params={
+            'service': self.serviceUrl,
+            'ticket': ticket
+        }, timeout=10)
+        r.raise_for_status()
+        result = r.text
 
         dom = xml.dom.minidom.parseString(result)
         username = None

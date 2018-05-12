@@ -1,3 +1,5 @@
+import traceback
+
 from six.moves.urllib.parse import urlencode, parse_qsl
 
 from ._authinfo import *
@@ -49,8 +51,13 @@ class CASMiddleware(object):
 
             service_url = session[CAS_SERVICE_KEY]
 
+            username = None
             cas = CASClient(self._validate_url, service_url)
-            username = cas.authenticate(ticket)
+            try:
+                username = cas.authenticate(ticket)
+            except:
+                traceback.print_exc(file=environ['wsgi.errors'])
+
             if username is not None:
                 # Validation succeeded, redirect back to app
                 session[CAS_AUTH_INFO_KEY] = self._auth_info_service.issue(username)

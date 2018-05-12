@@ -7,12 +7,13 @@ oid_version = sys.version_info.major == 2 and 'python-openid>=2.2.5' or \
 from setuptools import setup, find_packages
 setup(
     name='flupauth',
-    version='0.2',
+    version='0.2.1',
     packages=find_packages(),
     install_requires=[
         'six>=1.11.0',
     ],
     extras_require={
+        'cas': ['requests>=2.18.4'],
         'oidc': ['openid-connect>=0.4.2mod'],
         'steam': [oid_version, 'Jinja2>=2.10'],
     },
